@@ -12,10 +12,6 @@ open Hopac
 open Hopac.Infixes
 open Hopac.Extensions
 
-
-let ps o = printfn "%A" o
-let jps o = job { do ps o }
-
 type Sem = MVar<unit>
 let P sem = MVar.take sem
 let V sem = MVar.fill sem ()
