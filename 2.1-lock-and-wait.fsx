@@ -30,7 +30,7 @@ type Buffer<'a> =
 module Buffer =
 
     let create () =
-        { data = Option<'a>.None
+        { data = None
           waiting = 0
           lockSem = Sem (())
           waitSem = Sem  ()}
@@ -40,12 +40,12 @@ module Buffer =
     let internal waitUp b = job { do b.waiting <- b.waiting + 1}
     let internal waitDown b = job { do b.waiting <- b.waiting - 1}
 
-    let wait (buf:Buffer<'a>) =
+    let internal wait (buf:Buffer<'a>) =
         waitUp buf
         >>=. V buf.lockSem
         >>=. P buf.waitSem
 
-    let rec signal (buf:Buffer<'a>) :Job<unit> =
+    let rec internal signal (buf:Buffer<'a>) :Job<unit> =
         waitDown buf
         >>=. V buf.waitSem
         >>=. job { return! signal buf }
