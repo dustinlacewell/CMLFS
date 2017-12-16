@@ -19,8 +19,8 @@ let V sem = MVar.fill sem ()
 type Buffer<'a> =
     { mutable data: 'a option
       mutable waiting: int
-      lockSem: MVar<unit>
-      waitSem: MVar<unit> }
+      lockSem: MVar<unit>   // mutex
+      waitSem: MVar<unit> } // condex
 
 [<AutoOpen>]
 module Buffer =
@@ -72,11 +72,17 @@ module Buffer =
                         wait buf
                         >>=. remove buf)
 
-let buffer = create ()
-let data = [0..99]
+let printResult = (fun x -> job { printfn "%i got %i" i x })
 
-// non-local producer
-start <| Seq.iterJobIgnore (fun x -> insert buffer x) data
-// local consumer
-run   <| forNIgnore (data.Length) (remove buffer >>= (fun x -> job { printfn "%i" x }))
+let example length workers =
+    // communication buffer
+    let buffer = create ()
+    // data to communicate
+    let data = [1..length]
+    // local consumer
+    let factory i = start <| foreverServer (remove buffer >>= printResult)
+    let consumers = List.map factory [1..workers]
+    // non-local producer
+    run <| Seq.iterJobIgnore (insert buffer) data
+
 
