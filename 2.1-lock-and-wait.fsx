@@ -1,6 +1,8 @@
 #!/usr/bin/env fsharpi
 
 #I "../../../.nuget/packages/hopac/0.3.21/lib/net45/"
+#I "../../../.nuget/packages/hopac.extras/0.3.1/lib/net45"
+#r "Hopac.Extras"
 #r "Hopac.Platform"
 #r "Hopac.Core"
 #r "Hopac"
@@ -11,16 +13,16 @@ open Hopac.Job
 open Hopac
 open Hopac.Infixes
 open Hopac.Extensions
-
-type Sem = MVar<unit>
-let P sem = MVar.take sem
-let V sem = MVar.fill sem ()
+open Hopac.Extras
 
 type Buffer<'a> =
     { mutable data: 'a option
       mutable waiting: int
-      lockSem: MVar<unit>   // mutex
-      waitSem: MVar<unit> } // condex
+      lockSem: Semaphore
+      waitSem: Semaphore }
+
+let P = Semaphore.wait
+let V = Semaphore.release
 
 [<AutoOpen>]
 module Buffer =
@@ -28,8 +30,8 @@ module Buffer =
     let create () =
         { data = None
           waiting = 0
-          lockSem = Sem (())
-          waitSem = Sem  ()}
+          lockSem = Semaphore(1)
+          waitSem = Semaphore(0)}
 
     let internal write b (v:'a) = job { do b.data <- Some v }
     let internal clear b = job { do b.data <- None }
@@ -72,7 +74,7 @@ module Buffer =
                         wait buf
                         >>=. remove buf)
 
-let printResult = (fun x -> job { printfn "%i got %i" i x })
+let printResult i x = job { do printfn "%A got %A" i x }
 
 let example length workers =
     // communication buffer
@@ -80,7 +82,7 @@ let example length workers =
     // data to communicate
     let data = [1..length]
     // local consumer
-    let factory i = start <| foreverServer (remove buffer >>= printResult)
+    let factory i = start <| foreverServer (remove buffer >>= printResult i)
     let consumers = List.map factory [1..workers]
     // non-local producer
     run <| Seq.iterJobIgnore (insert buffer) data
