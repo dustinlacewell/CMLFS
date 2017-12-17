@@ -24,20 +24,25 @@ type Buffer<'a> =
 [<AutoOpen>]
 module Buffer =
 
-    let create<'a> () =
-        { emptyCh = Ch<unit>()
-          insCh = Ch<'a>()
-          remCh = Ch<'a>()
-          remAckCh = Ch<unit>() }
+    let create<'a> () : Buffer<'a> =
+        let buf =
+            { emptyCh = Ch<unit>()
+              insCh = Ch<'a>()
+              remCh = Ch<'a>()
+              remAckCh = Ch<unit>() }
 
-    let rec empty buf =
-        Ch.send buf.emptyCh () >>=.
-        Ch.take buf.insCh ^=>
-        full buf
-    and full buf x =
-        Ch.send buf.remCh x >>=.
-        Ch.take buf.remAckCh ^=>.
-        empty buf
+        let rec empty () =
+            Ch.send buf.emptyCh () >>=.
+            Ch.take buf.insCh ^=>
+            full
+
+        and full x :Job<unit> =
+            Ch.send buf.remCh x >>=.
+            Ch.take buf.remAckCh ^=>.
+            empty ()
+
+        start <| empty ()
+        buf
 
     let insert buf v =
         Ch.take buf.emptyCh ^=>.
@@ -53,11 +58,9 @@ let printResult i x = job { printfn "%i: got %i" i x }
 let length = 1000
 let workers = 4
 // communication buffer
-let (buffer:Buffer<int>) = create ()
+let buffer = create ()
 // data to communicate
 let data = [1..length]
-// start buffer worker
-start <| empty buffer
 // non-local consumers
 let factory i = start <| foreverServer (remove buffer >>= printResult i)
 let consumers = List.map factory [1..workers]
