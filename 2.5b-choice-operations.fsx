@@ -26,16 +26,20 @@ module Buffer =
         let remCh = Ch<'a>()
 
         let rec doRem buf =
-            remCh *<- List.head buf ^=>. loop (List.tail buf)
+            remCh *<- List.head buf
+            ^=>. loop (List.tail buf)
 
         and doIns buf =
-            Ch.take insCh ^=> fun x -> loop (buf @ [x])
+            Ch.take insCh
+            ^=> fun x -> loop (buf @ [x])
 
         and loop = function
             | [] -> doIns []
             | buf ->
-                if buf.Length > size then doRem buf
-                else Alt.choose [doRem buf; doIns buf]
+                if buf.Length > size then
+                    doRem buf
+                else
+                    doRem buf <|> doIns buf
 
         loop [] |> start
 
@@ -52,7 +56,7 @@ let printResult i x = job { printfn "%i: got %i" i x }
 let length = 1000
 let workers = 4
 // communication buffer
-let buffer = create ()
+let buffer = create 16
 // data to communicate
 let data = [1..length]
 // non-local consumers
