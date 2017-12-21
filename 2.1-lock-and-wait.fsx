@@ -76,15 +76,16 @@ module Buffer =
 
 let printResult i x = job { do printfn "%A got %A" i x }
 
-let example length workers =
-    // communication buffer
-    let buffer = create ()
-    // data to communicate
-    let data = [1..length]
-    // local consumer
-    let factory i = start <| foreverServer (remove buffer >>= printResult i)
-    let consumers = List.map factory [1..workers]
-    // non-local producer
-    run <| Seq.iterJobIgnore (insert buffer) data
+let length = 1000
+let workers = 4
+// communication buffer
+let buffer = create ()
+// data to communicate
+let data = [1..length]
+// local consumer
+let factory i = start <| foreverServer (remove buffer >>= printResult i)
+let consumers = List.map factory [1..workers]
+// non-local producer
+run <| Seq.iterJobIgnore (insert buffer) data
 
 

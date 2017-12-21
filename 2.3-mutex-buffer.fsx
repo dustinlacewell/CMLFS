@@ -87,8 +87,8 @@ module Buffer =
 
 let printResult i x = job { printfn "%i: got %i" i x }
 
-let length = 5
-let workers = 2
+let length = 1000
+let workers = 4
 // communication buffer
 let buffer = create ()
 // data to communicate
@@ -97,8 +97,6 @@ let data = [1..length]
 let factory i = start <| foreverServer (remove (string i) buffer >>= printResult i)
 let consumers = List.map factory [1..workers]
 // local producer
-printfn "starting producer..."
-run <| timeOut (TimeSpan.FromSeconds 1.0)
 run <| Seq.iterJobIgnore (insert buffer) data
 
 

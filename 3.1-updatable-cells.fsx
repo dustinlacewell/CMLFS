@@ -51,7 +51,6 @@ let data = [1..length]
 let factory i = get cell >>= printResult i |> foreverIgnore |> server
 let consumers = List.map factory [1..workers]
 // local producer
-run <| timeOut (TimeSpan.FromSeconds 1.0)
 run <| Seq.iterJobIgnore (put cell) data
 
 

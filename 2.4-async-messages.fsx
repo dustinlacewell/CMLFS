@@ -65,7 +65,6 @@ let data = [1..length]
 let factory i = start <| foreverServer (remove buffer >>= printResult i)
 let consumers = List.map factory [1..workers]
 // local producer
-run <| timeOut (TimeSpan.FromSeconds 1.0)
 run <| Seq.iterJobIgnore (insert buffer) data
 
 
